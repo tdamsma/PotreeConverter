@@ -7,8 +7,10 @@
 #include "PotreeWriter.h"
 #include "LASPointReader.h"
 #include "BINPointReader.hpp"
+#include "POTPointReader.hpp"
 #include "LASPointWriter.hpp"
 #include "BINPointWriter.hpp"
+#include "POTPointWriter.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -38,6 +40,8 @@ PointReader *PotreeWriterNode::createReader(string path){
 		reader = new LASPointReader(path);
 	}else if(outputFormat == OutputFormat::BINARY){
 		reader = new BINPointReader(path);
+	}else if(outputFormat == OutputFormat::POT){
+		reader = new POTPointReader(path);
 	}
 
 	return reader;
@@ -45,23 +49,23 @@ PointReader *PotreeWriterNode::createReader(string path){
 
 PointWriter *PotreeWriterNode::createWriter(string path){
 	PointWriter *writer = NULL;
-	OutputFormat outputFormat = this->potreeWriter->outputFormat;
+	OutputFormat outputFormat = potreeWriter->outputFormat;
 	if(outputFormat == OutputFormat::LAS || outputFormat == OutputFormat::LAZ){
 		writer = new LASPointWriter(path, aabb);
 	}else if(outputFormat == OutputFormat::BINARY){
 		writer = new BINPointWriter(path);
+	}else if(outputFormat == OutputFormat::POT){
+		writer = new POTPointWriter(path, this->potreeWriter->q);
 	}
 
 	return writer;
-
-	
 }
 
 void PotreeWriterNode::loadFromDisk(){
 	PointReader *reader = createReader(path + "/data/" + name + potreeWriter->getExtension());
 	while(reader->readNextPoint()){
 		Point p = reader->getPoint();
-		Vector3<double> position = Vector3<double>(p.x, p.y, p.z);
+		Vector3<double> position = p.xyz();
 		grid->addWithoutCheck(position);
 	}
 	grid->numAccepted = numAccepted;
@@ -84,11 +88,13 @@ PotreeWriterNode *PotreeWriterNode::add(Point &point, int minLevel){
 				child = createChild(childIndex);
 			}
 
-			child->add(point, minLevel);
+			return child->add(point, minLevel);
 		}
 	}else{
-		add(point);
+		return add(point);
 	}
+
+	return NULL;
 }
 
 PotreeWriterNode *PotreeWriterNode::createChild(int childIndex ){
@@ -109,7 +115,7 @@ PotreeWriterNode *PotreeWriterNode::add(Point &point){
 		loadFromDisk();
 	}
 
-	Vector3<double> position(point.x, point.y, point.z);
+	Vector3<double> position = point.xyz();
 	bool accepted = grid->add(position);
 	//float minGap = grid->add(Vector3<double>(point.x, point.y, point.z));
 	//bool accepted = minGap > spacing;
@@ -121,7 +127,7 @@ PotreeWriterNode *PotreeWriterNode::add(Point &point){
 
 	if(accepted){
 		cache.push_back(point);
-		Vector3<double> position(point.x, point.y, point.z);
+		Vector3<double> position = point.xyz();
 		acceptedAABB.update(position);
 		potreeWriter->numAccepted++;
 		numAccepted++;
@@ -142,10 +148,14 @@ PotreeWriterNode *PotreeWriterNode::add(Point &point){
 			return child->add(point);
 			//child->add(point, targetLevel);
 		}
-	}else{
-		return NULL;
 	}
+
+	return NULL;
 }
+
+bool orderX(Point a, Point b){ return a.x() < b.x(); }
+bool orderY(Point a, Point b){ return a.y() < b.y(); }
+bool orderZ(Point a, Point b){ return a.z() < b.z(); }
 
 void PotreeWriterNode::flush(){
 
@@ -169,6 +179,7 @@ void PotreeWriterNode::flush(){
 			fs::remove(temppath);
 		}
 
+		sort(cache.begin(), cache.end(), orderX);
 		for(int i = 0; i < cache.size(); i++){
 			writer->write(cache[i]);
 		}

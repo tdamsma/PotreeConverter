@@ -32,10 +32,10 @@ public:
 		size = max-min;
 	}
 
-	bool isInside(const Point &p){
-		if(min.x <= p.x && p.x <= max.x){
-			if(min.y <= p.y && p.y <= max.y){
-				if(min.z <= p.z && p.z <= max.z){
+	bool isInside(const Point &p) const {
+		if(min.x <= p.x() && p.x() <= max.x){
+			if(min.y <= p.y() && p.y() <= max.y){
+				if(min.z <= p.z() && p.z() <= max.z){
 					return true;
 				}
 			}
@@ -44,7 +44,7 @@ public:
 		return false;
 	}
 
-	void update(Vector3<double> &point){
+	void update(const Vector3<double> &point){
 		min.x = std::min(min.x, point.x);
 		min.y = std::min(min.y, point.y);
 		min.z = std::min(min.z, point.z);

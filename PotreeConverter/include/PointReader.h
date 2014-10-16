@@ -8,6 +8,7 @@
 
 #include "Point.h"
 #include "AABB.h"
+#include "Vector3.h"
 
 namespace fs = boost::filesystem;
 
@@ -25,6 +26,8 @@ public:
 	virtual long numPoints() = 0;
 
 	virtual void close() = 0;
+
+	virtual Vector3<double> getScale() = 0;
 };
 
 #endif

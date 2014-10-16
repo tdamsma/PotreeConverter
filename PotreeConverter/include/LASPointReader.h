@@ -11,6 +11,7 @@
 
 #include "Point.h"
 #include "PointReader.h"
+#include "Quantization.hpp"
 
 using std::string;
 
@@ -56,6 +57,30 @@ public:
 		return aabb;
 	}
 
+	Vector3<double> getScale(){
+		Vector3<double> scale(0);
+
+		const liblas::Header &header = reader.GetHeader();
+
+		scale.x = header.GetScaleX();
+		scale.y = header.GetScaleY();
+		scale.z = header.GetScaleZ();
+
+		return scale;
+	}
+
+	Vector3<double> getOffset(){
+		Vector3<double> offset(0);
+
+		const liblas::Header &header = reader.GetHeader();
+
+		offset.x = header.GetOffsetX();
+		offset.y = header.GetOffsetY();
+		offset.z = header.GetOffsetZ();
+
+		return offset;
+	}
+
 };
 
 
@@ -66,6 +91,7 @@ private:
 	LIBLASReader *reader;
 	vector<string> files;
 	vector<string>::iterator currentFile;
+	Quantization q;
 
 public:
 

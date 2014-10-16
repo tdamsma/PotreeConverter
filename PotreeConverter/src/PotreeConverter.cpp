@@ -10,7 +10,7 @@
 #include "PotreeWriter.h"
 #include "LASPointReader.h"
 #include "LASPointWriter.hpp"
-#include "PlyPointReader.h"
+//#include "PlyPointReader.h"
 
 #include <chrono>
 #include <sstream>
@@ -51,9 +51,9 @@ PointReader *createPointReader(string path){
 	PointReader *reader = NULL;
 	if(boost::iends_with(path, ".las") || boost::iends_with(path, ".laz")){
 		reader = new LASPointReader(path);
-	}else if(boost::iends_with(path, ".ply")){
+	}/*else if(boost::iends_with(path, ".ply")){
 		reader = new PlyPointReader(path);
-	}
+	}*/
 
 	return reader;
 }
@@ -100,17 +100,20 @@ PotreeConverter::PotreeConverter(vector<string> sources, string workDir, float s
 	cloudjs.outputFormat = OutputFormat::LAS;
 }
 
-
-AABB calculateAABB(vector<string> sources){
-	AABB aabb;
+void PotreeConverter::initValues(){
+	cout << "initializing scale, bounding box, etc.." << endl; 
+	q.scale = Vector3<double>(0);
 
 	for(int i = 0; i < sources.size(); i++){
 		string source = sources[i];
 
 		PointReader *reader = createPointReader(source);
 		AABB lAABB = reader->getAABB();
-		 
 
+		if(q.scale.length() == 0 && reader->getScale().length() != 0){
+			q.scale = reader->getScale();
+		}
+		
 		aabb.update(lAABB.min);
 		aabb.update(lAABB.max);
 
@@ -118,12 +121,37 @@ AABB calculateAABB(vector<string> sources){
 		delete reader;
 	}
 
-	return aabb;
+	if(q.scale.length() == 0){
+		cout << "no scale found. using 0.01";
+		q.scale = Vector3<double>(0.01);
+	}
 }
 
+
+//AABB calculateAABB(vector<string> sources){
+//	AABB aabb;
+//
+//	for(int i = 0; i < sources.size(); i++){
+//		string source = sources[i];
+//
+//		PointReader *reader = createPointReader(source);
+//		AABB lAABB = reader->getAABB();
+//		 
+//
+//		aabb.update(lAABB.min);
+//		aabb.update(lAABB.max);
+//
+//		reader->close();
+//		delete reader;
+//	}
+//
+//	return aabb;
+//}
+
 void PotreeConverter::convert(){
-	aabb = calculateAABB(sources);
+	initValues();
 	cout << "AABB: " << endl << aabb << endl;
+	cout << "scale: " << q.scale << endl;
 
 	aabb.makeCubic();
 
@@ -131,7 +159,7 @@ void PotreeConverter::convert(){
 
 	auto start = high_resolution_clock::now();
 
-	PotreeWriter writer(this->workDir, aabb, spacing, maxDepth, outputFormat);
+	PotreeWriter writer(this->workDir, aabb, spacing, maxDepth, q, outputFormat);
 	//PotreeWriterLBL writer(this->workDir, aabb, spacing, maxDepth, outputFormat);
 
 	long long pointsProcessed = 0;
@@ -160,7 +188,7 @@ void PotreeConverter::convert(){
 
 				cout << (pointsProcessed / (1000*1000)) << "m points processed" << endl;
 				auto end = high_resolution_clock::now();
-				long duration = duration_cast<milliseconds>(end-start).count();
+				long long duration = duration_cast<milliseconds>(end-start).count();
 				cout << "duration: " << (duration / 1000.0f) << "s" << endl;
 				//return;
 			}
@@ -173,7 +201,7 @@ void PotreeConverter::convert(){
 	cout << writer.numAccepted << " points written" << endl;
 
 	auto end = high_resolution_clock::now();
-	long duration = duration_cast<milliseconds>(end-start).count();
+	long long duration = duration_cast<milliseconds>(end-start).count();
 	cout << "duration: " << (duration / 1000.0f) << "s" << endl;
 	
 	cout << "closing writer" << endl;

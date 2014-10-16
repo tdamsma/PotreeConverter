@@ -9,9 +9,9 @@ using std::vector;
 void LASPointWriter::write(const Point &point){
 	liblas::Point lp(header);
 	
-	lp.SetX(point.x);
-	lp.SetY(point.y);
-	lp.SetZ(point.z);
+	lp.SetX(point.x());
+	lp.SetY(point.y());
+	lp.SetZ(point.z());
 
 	vector<uint8_t> &data = lp.GetData();
 

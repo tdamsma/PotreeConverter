@@ -3,8 +3,6 @@
 #ifndef POTREE_CONVERTER_H
 #define POTREE_CONVERTER_H
 
-#define POTREE_FORMAT_VERSION "1.2"
-
 #include "AABB.h"
 #include "CloudJS.hpp"
 #include "definitions.hpp"
@@ -46,8 +44,10 @@ private:
 	int maxDepth;
 	string format;
 	OutputFormat outputFormat;
-
+	Quantization q;
 	float range;
+
+	void initValues();
 
 public:
 

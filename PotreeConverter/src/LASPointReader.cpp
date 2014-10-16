@@ -22,7 +22,6 @@ using std::ios;
 
 LASPointReader::LASPointReader(string path){
 	this->path = path;
-
 	
 	if(fs::is_directory(path)){
 		// if directory is specified, find all las and laz files inside directory
@@ -40,7 +39,7 @@ LASPointReader::LASPointReader(string path){
 	}
 	
 
-	// read bounding box
+	// read bounding box and scale
 	for(int i = 0; i < files.size(); i++){
 		string file = files[i];
 
@@ -50,8 +49,15 @@ LASPointReader::LASPointReader(string path){
 		aabb.update(lAABB.min);
 		aabb.update(lAABB.max);
 
+		if(q.scale.length() == 0 && aabbReader.getScale().length() != 0){
+			q.scale = aabbReader.getScale();
+		}
+		
 		aabbReader.close();
 	}
+	//q.min = aabb.min;
+	//q.max = aabb.max;
+	q.offset = aabb.min;
 
 	// open first file
 	currentFile = files.begin();
@@ -95,8 +101,13 @@ bool LASPointReader::readNextPoint(){
 }
 
 Point LASPointReader::getPoint(){
-	const liblas::Point &lp = reader->reader.GetPoint();
-	Point p(lp.GetX(), lp.GetY(), lp.GetZ());
+	const liblas::Point &lp = reader->reader.GetPoint();	
+	Point p(&q);
+	double x = lp.GetX();
+	double y = lp.GetY();
+	double z = lp.GetZ();
+
+	p.setxyz(x, y, z);
 
 	p.intensity = lp.GetIntensity();
 	p.classification = lp.GetClassification().GetClass();

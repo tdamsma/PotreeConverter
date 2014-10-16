@@ -86,9 +86,10 @@ bool BINPointReader::readNextPoint(){
 			const PointAttribute attribute = attributes[i];
 			if(attribute == PointAttribute::POSITION_CARTESIAN){
 				float* fBuffer = reinterpret_cast<float*>(buffer+offset);
-				point.x = fBuffer[0];
-				point.y = fBuffer[1];
-				point.z = fBuffer[2];
+				//point.x = fBuffer[0];
+				//point.y = fBuffer[1];
+				//point.z = fBuffer[2];
+				point.setxyz(fBuffer[0], fBuffer[1], fBuffer[2]);
 			}else if(attribute == PointAttribute::COLOR_PACKED){
 				unsigned char* ucBuffer = reinterpret_cast<unsigned char*>(buffer+offset);
 				point.r = ucBuffer[0];
@@ -113,6 +114,10 @@ AABB BINPointReader::getAABB(){
 	//TODO
 
 	return aabb;
+}
+
+Vector3<double> BINPointReader::getScale(){
+	return Vector3<double>(0);
 }
 
 

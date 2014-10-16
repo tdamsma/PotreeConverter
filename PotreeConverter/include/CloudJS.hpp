@@ -65,6 +65,8 @@ public:
 			cloudJs << "\t" << "\"pointAttributes\": \"LAS\"," << endl;
 		}else if(outputFormat == OutputFormat::LAZ){
 			cloudJs << "\t" << "\"pointAttributes\": \"LAZ\"," << endl;
+		}else if(outputFormat == OutputFormat::POT){
+			cloudJs << "\t" << "\"pointAttributes\": \"POT\"," << endl;
 		}
 		cloudJs << "\t" << "\"spacing\": " << spacing << "," << endl;
 		cloudJs << "\t" << "\"hierarchy\": [" << endl;

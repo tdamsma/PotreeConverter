@@ -13,6 +13,7 @@
 
 #include "Point.h"
 #include "PointReader.h"
+#include "Quantization.hpp"
 
 using std::ifstream;
 using std::string;
@@ -250,6 +251,10 @@ public:
 
 	void close(){
 		stream.close();
+	}
+
+	Vector3<double> getScale(){
+		return Vector3<double>(0);
 	}
 
 

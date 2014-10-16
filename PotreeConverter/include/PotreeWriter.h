@@ -88,18 +88,19 @@ public:
 	long long numAccepted;
 	CloudJS cloudjs;
 	OutputFormat outputFormat;
+	Quantization q;
 
 	int pointsInMemory;
 	int pointsInMemoryLimit;
 
-
-
-	PotreeWriter(string path, AABB aabb, float spacing, int maxLevel, OutputFormat outputFormat){
+	PotreeWriter(string path, AABB aabb, float spacing, int maxLevel, Quantization q, OutputFormat outputFormat){
 		this->path = path;
 		this->aabb = aabb;
 		this->spacing = spacing;
 		this->maxLevel = maxLevel;
 		this->outputFormat = outputFormat;
+		this->q = q;
+
 		numAccepted = 0;
 		pointsInMemory = 0;
 		pointsInMemoryLimit = 1*1000*1000;
@@ -130,6 +131,8 @@ public:
 			return ".las";
 		}else if(outputFormat == OutputFormat::LAZ){
 			return ".laz";
+		}else if(outputFormat == OutputFormat::POT){
+			return ".pot";
 		}
 
 		return "";
@@ -147,13 +150,7 @@ public:
 	void flush(){
 		root->flush();
 
-
-
-
-
 		// update cloud.js
-		
-		
 		long long numPointsInMemory = 0;
 		long long numPointsInHierarchy = 0;
 		cloudjs.hierarchy = vector<CloudJS::Node>();

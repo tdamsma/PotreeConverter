@@ -54,52 +54,11 @@ void printUsage(po::options_description &desc){
 #include "LASPointWriter.hpp"
 #include "BINPointWriter.hpp"
 
-//int main(int argc, char **argv){
-//	string path = "C:/dev/workspaces/potree/develop/resources/pointclouds/lion_takanawa/laz/r.laz";
-//	string pathOut = "C:/temp/test.las";
-//	LASPointReader *reader = new LASPointReader(path);
-//	LASPointWriter *writer = new LASPointWriter(pathOut, reader->getAABB());
-//
-//	int i = 0;
-//	while(reader->readNextPoint()){
-//		Point p = reader->getPoint();
-//		
-//		if(i < 10){
-//			cout << p.position() << endl;
-//		}
-//
-//		writer->write(p);
-//		i++;
-//	}
-//	writer->close(); 
-//	reader->close();
-//}
 
-//#include "BINPointReader.hpp"
-//#include "BINPointWriter.hpp"
-//
-//int main(int argc, char **argv){
-//	string path = "C:/dev/pointclouds/converted/skatepark/data/r";
-//	string pathOut = "C:/temp/skatepark";
-//	BINPointReader *reader = new BINPointReader(path);
-//	BINPointWriter *writer = new BINPointWriter(pathOut);
-//
-//	int i = 0;
-//	while(reader->readNextPoint()){
-//		Point p = reader->getPoint();
-//		
-//		if(i < 10){
-//			cout << p.position() << endl;
-//		}
-//
-//		writer->write(p);
-//		i++;
-//	}
-//	writer->close();
-//	reader->close();
-//}
 
-int main(int argc, char **argv){
+
+
+int doConversion(int argc, char **argv){
 	vector<string> source;
 	string outdir;
 	float spacing;
@@ -157,6 +116,8 @@ int main(int argc, char **argv){
 			outFormat = OutputFormat::LAS;
 		}else if(outFormatString == "LAZ"){
 			outFormat = OutputFormat::LAZ;
+		}else if(outFormatString == "POT"){
+			outFormat = OutputFormat::POT;
 		}
 
 		cout << "== params ==" << endl;
@@ -192,4 +153,47 @@ int main(int argc, char **argv){
 
 
 	return 0;
+}
+
+#include "POTPointWriter.hpp"
+#include "POTPointReader.hpp"
+
+void testPOTWriter(){
+
+	string file = "D:/temp/testfile.pot";
+	Quantization q;
+	q.offset = Vector3<double>(-1, -2, -1);
+	q.scale = Vector3<double>(0.001, 0.001, 0.001);
+
+	POTPointWriter *writer = new POTPointWriter(file, q);
+
+	cout << "writing: " << endl;
+	for(int i = 0; i < 5; i++){
+		Point p(&q);
+		p.setxyz(rand() % 10 + i, rand() % 10 + 2*i, rand() % 100);
+		writer->write(p);
+
+		cout << p.xyz() << endl;
+	}
+	writer->close();
+
+
+	cout << endl;
+	cout << "reading: " << endl;
+
+	POTPointReader *reader = new POTPointReader(file);
+	while(reader->readNextPoint()){
+		Point p = reader->getPoint();
+
+		cout << p.xyz() << endl;
+	}
+
+}
+
+
+int main(int argc, char **argv){
+	return doConversion(argc, argv);
+
+	//testPOTWriter();
+
 }
