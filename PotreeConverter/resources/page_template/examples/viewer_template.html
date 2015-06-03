@@ -15,7 +15,7 @@
 		height: 80%;
 		top: 100px;
 		left: 100px;
-		rigt: 100px;
+		right: 100px;
 		bottom: 100px;
 	}
 	
@@ -154,6 +154,10 @@ void main() {
 		var transformationTool;
 		var referenceFrame;
 		
+		var pColorMin;
+		var pColorRange;
+		var params = {"zScale": 1};
+
 		function setPointSizeType(value){
 			if(value === "Fixed"){
 				pointSizeType = Potree.PointSizeType.FIXED;
@@ -204,12 +208,15 @@ void main() {
 			});
 			
 			params = {
-				"points(m)": pointCountTarget,
+				"points(M)": pointCountTarget,
 				PointSize: pointSize,
 				"opacity": opacity,
+				"zScale": 1,
 				"SizeType" : sceneProperties.sizeType,
 				"show octree" : false,
 				"Materials" : sceneProperties.material,
+				"Color Min" : 1,
+				"Color Range" : 10000,
 				"Clip Mode": "Highlight Inside",
 				"quality": sceneProperties.quality,
 				"skybox": false,
@@ -217,7 +224,7 @@ void main() {
 				"BoundingBox": showBoundingBox
 			};
 			
-			var pPoints = gui.add(params, 'points(m)', 0, 2);
+			var pPoints = gui.add(params, 'points(M)', 0, 2);
 			pPoints.onChange(function(value){
 				pointCountTarget = value ;
 			});
@@ -227,11 +234,17 @@ void main() {
 				pointSize = value;
 			});
 			
-			var pOpacity = gui.add(params, 'opacity', 0, 1);
-			pOpacity.onChange(function(value){
-				opacity = value;
-			});
+			// broken
+			// var pOpacity = gui.add(params, 'opacity', 0, 1);
+			// pOpacity.onChange(function(value){
+			// 	opacity = value;
+			// });
 			
+			var pZScale = gui.add(params, 'zScale', 0.1, 15);
+			pZScale.onChange(function(value){
+				setZScale()
+			});		
+				
 			var pSizeType = gui.add(params, 'SizeType', [ "Fixed", "Attenuated", "Adaptive"]);
 			pSizeType.onChange(function(value){
 				setPointSizeType(value);
@@ -295,18 +308,25 @@ void main() {
 					clipMode = Potree.ClipMode.HIGHLIGHT_INSIDE;
 				}
 			});
-			
-			var pSykbox = gui.add(params, 'skybox');
+
+			var colorSliders = gui.addFolder('Colors (for color by height)');
+			pColorMin = colorSliders.add(params, 'Color Min', 0, 100, 0.1);
+			pColorRange = colorSliders.add(params, 'Color Range', 0, 100, 0.1);
+
+			var advanced = gui.addFolder('Advanced');
+
+
+			var pSykbox = advanced.add(params, 'skybox');
 			pSykbox.onChange(function(value){
 				showSkybox = value;
 			});
 			
-			var pStats = gui.add(params, 'stats');
+			var pStats = advanced.add(params, 'stats');
 			pStats.onChange(function(value){
 				showStats = value;
 			});
 			
-			var pBoundingBox = gui.add(params, 'BoundingBox');
+			var pBoundingBox = advanced.add(params, 'BoundingBox');
 			pBoundingBox.onChange(function(value){
 				showBoundingBox = value;
 			});
@@ -431,7 +451,7 @@ void main() {
 				referenceFrame.matrix.copy(new THREE.Matrix4());
 				referenceFrame.applyMatrix(new THREE.Matrix4().set(
 					1,0,0,0,
-					0,0,1,0,
+					0,0,params.zScale,0,
 					0,-1,0,0,
 					0,0,0,1
 				));
@@ -441,7 +461,7 @@ void main() {
 				referenceFrame.applyMatrix(new THREE.Matrix4().set(
 					1,0,0,0,
 					0,1,0,0,
-					0,0,1,0,
+					0,0,params.zScale,0,
 					0,0,0,1
 				));
 			}
@@ -455,6 +475,36 @@ void main() {
 			referenceFrame.updateMatrixWorld(true);
 		}
 		
+		
+		function setZScale(){
+			if(isFlipYZ){
+				referenceFrame.matrix.copy(new THREE.Matrix4());
+				referenceFrame.applyMatrix(new THREE.Matrix4().set(
+					1,0,0,0,
+					0,0,params.zScale,0,
+					0,-1,0,0,
+					0,0,0,1
+				));
+				
+			}else{
+				referenceFrame.matrix.copy(new THREE.Matrix4());
+				referenceFrame.applyMatrix(new THREE.Matrix4().set(
+					1,0,0,0,
+					0,1,0,0,
+					0,0,params.zScale,0,
+					0,0,0,1
+				));
+			}
+
+			referenceFrame.updateMatrixWorld(true);
+			pointcloud.updateMatrixWorld();
+			var sg = pointcloud.boundingSphere.clone().applyMatrix4(pointcloud.matrixWorld);
+			referenceFrame.position.copy(sg.center).multiplyScalar(-1);
+			referenceFrame.updateMatrixWorld(true);
+			referenceFrame.position.y -= pointcloud.getWorldPosition().y;
+			referenceFrame.updateMatrixWorld(true);
+		}
+
 		function onKeyDown(event){
 			//console.log(event.keyCode);
 			
@@ -502,8 +552,9 @@ void main() {
 				}
 					
 				pointcloud.material.clipMode = clipMode;
-				pointcloud.material.heightMin = bbWorld.min.y;
-				pointcloud.material.heightMax = bbWorld.max.y;
+				pointcloud.material.heightMin = params["Color Min"] * params.zScale
+				pointcloud.material.heightMax = (params["Color Min"] + params["Color Range"]) * params.zScale
+				// console.log('height',pointcloud.material.heightMin,pointcloud.material.heightMax)
 				pointcloud.material.intensityMin = 0;
 				pointcloud.material.intensityMax = intensityMax;
 				pointcloud.showBoundingBox = showBoundingBox;
@@ -577,6 +628,39 @@ void main() {
 			
 			if(pointcloud){
 				pointcloud.material.setClipBoxes(clipBoxes);
+			}
+
+			if(gui) {
+				// adjust color sliders
+				if (pColorMin.__min != bbWorld.min.y / params.zScale){
+					pColorMin.__min = bbWorld.min.y / params.zScale
+					pColorMin.updateDisplay();
+				}
+				if (pColorMin.__max != bbWorld.max.y / params.zScale){
+					pColorMin.__max = bbWorld.max.y / params.zScale
+					pColorMin.updateDisplay();
+				}
+
+				if (params["Color Min"] < pColorMin.__min){
+					params["Color Min"] = pColorMin.__min
+					pColorMin.updateDisplay();
+				}
+
+				if (params["Color Min"] >  pColorMin.__max){
+					params["Color Min"] = pColorMin.__max
+					pColorMin.updateDisplay();
+				}
+
+
+				if (pColorRange.__max != pColorMin.__max - params["Color Min"]){
+					pColorRange.__max = pColorMin.__max - params["Color Min"]
+					pColorRange.updateDisplay();
+				}
+
+				if (params["Color Range"] >  pColorRange.__max){
+					params["Color Range"] = pColorRange.__max
+					pColorRange.updateDisplay();
+				}
 			}
 			
 		}
